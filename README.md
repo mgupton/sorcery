@@ -1,6 +1,6 @@
 # Sorcery
 ---
-*Sorcery* is a tool for working with data sources (hosts/protected hosts/logs sources) configured with Alert Logic Cloud Defender. It supports various operations like purging defunct hosts from the configuration, naming sources and assigning protected hosts to appliances. This tool is designed to make it possible to automate these operations.
+*Sorcery* is a tool for working with data sources (hosts/protected hosts/logs sources) configured with [Alert Logic Cloud Defender](https://www.alertlogic.com/). It supports various operations like purging defunct hosts from the configuration, naming sources and assigning protected hosts to appliances. This tool is designed to make it possible to automate these operations.
 
 ## Implementation Details
 - Original design and implementation by Michael Gupton (mgupton@alertlogic.com).
@@ -9,7 +9,6 @@
 - Uses the *docopt* package.
 - Uses the Cloud Defender public API and requires an API key from Alert Logic.
   - Contact support@alertlogic.com to request an API key. Or go [here](https://www.alertlogic.com/resources/alert-logic-activeintegration-apis/).
-- Every command requires arguments for the API key, the data center designation and the customer id.
   - Contact Alert Logic support at support@alertlogic.com to get the data center and customer id.
 - Some of the commands are designed to be ran on the host itself. These commands automatically determine the identity of the host and perform the specified operations. `sorcery host name-me` is an example of this type of command.
 - Some of the commands can be ran from any place. `sorcery hosts purge-defunct` is an example of this type of command.
@@ -20,6 +19,7 @@
 ```
 python sorcery.py <command> <subcommand> <option-1> ... <option-N>
 ```
+- Every command requires options for the API key (--api_key), the data center designation (--dc) and the customer id (--cid).
 
 ### Options
 ```
@@ -49,6 +49,11 @@ python sorcery.py host name-me --api_key=<key> --dc=<dc> --cid=<cid> --name=<nam
 ```
 python sorcery.py host name-me --api_key=abc123 --dc=ashburn --cid=123 --name=${hostname}
 ```
+### Command: sorcery host assign-me
+This command will identify the host it is running on and then assign the protected host to an appliance via the specified assignment policy.
+```
+python sorcery.py host assign-me --api_key=<key> --dc=<dc> --cid=<cid> --policy-name=<policy-name>
+```
 
 ## Miscellanea
-- Sorcery could be "frozen" or distributed as a single self-contained executable by using pyinstaller --onefile to avoid the external depencies on the Python runtime and packages.
+- Sorcery could be "frozen" or distributed as a single self-contained executable by using ``pyinstaller --onefile`` to avoid the external depencies on the Python runtime and packages.
