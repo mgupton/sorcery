@@ -224,7 +224,10 @@ def delete_phost(api_key, cid, id):
 
     url = API_BASE_URL + api_endpoint
 
-    # result = requests.delete(url, headers=headers)
+    result = requests.delete(url, headers=headers)
+
+    if result.status_code != 200:
+        raise Exception("Failed to delete protected hosts.")
 
 
 def get_log_sources(api_key, cid, status):
@@ -287,7 +290,10 @@ def delete_log_source(api_key, cid, id):
 
     url = API_BASE_URL + api_endpoint
 
-    # result = requests.delete(url, headers=headers)
+    result = requests.delete(url, headers=headers)
+
+    if result.status_code != 200:
+        raise Exception("Failed to delete log source.")
 
 
 def get_hosts(api_key, cid, status):
@@ -353,7 +359,10 @@ def delete_host(api_key, cid, host_id):
 
     url = API_BASE_URL + api_endpoint
 
-    # result = requests.delete(url, headers=headers)
+    result = requests.delete(url, headers=headers)
+
+    if result.status_code != 200:
+        raise Exception("Failed to delete to host.")
 
 
 def delete_me(api_key, cid):
@@ -479,7 +488,7 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
 
 #
 # To delete a host all log sources and protected
-# host must be deleted first since they depend on
+# hosts must be deleted first since they depend on
 # the host configuration.
 #    
     purge_defunct_log_source_batches(api_key, cid, age, status, tag)
@@ -487,6 +496,10 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
 
     cur_time = int(time.time())
 
+#
+# The loop continuously gets the first batch of hosts and deletes them.
+# In this way it chomps its way through all defunct hosts.
+#
     while True:
         
         batch = get_hosts_batch(api_key, cid, "offline", BATCH_SIZE, offset, tag)

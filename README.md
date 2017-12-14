@@ -56,4 +56,4 @@ python sorcery.py host assign-me --api_key=<key> --dc=<dc> --cid=<cid> --policy-
 ```
 
 ## Miscellanea
-- Sorcery could be "frozen" or distributed as a single self-contained executable by using ``pyinstaller --onefile`` to avoid the external depencies on the Python runtime and packages.
+- Sorcery could be "frozen" or distributed as a single self-contained executable by using ``pyinstaller --onefile`` to avoid the external dependencies on the Python runtime and packages.
