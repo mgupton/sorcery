@@ -773,7 +773,7 @@ def get_assignment_policy_id(api_key, cid, name):
     headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key)}    
 
     try:        
-        result = requests.get(url, header=headers)
+        result = requests.get(url, headers=headers)
 
         if requests.status_code == 200:
             policy = json.loads(result.text())
