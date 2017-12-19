@@ -768,17 +768,19 @@ def get_assignment_policy_id(api_key, cid, name):
 
     api_endpoint = "/api/tm/v1/%s/policies" % (cid)
 
+    params = {"name": name}
+
     url = API_BASE_URL + api_endpoint
 
     headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key)}    
 
     try:        
-        result = requests.get(url, headers=headers)
+        result = requests.get(url, headers=headers, params=params)
 
         if result.status_code == 200:
             policy = json.loads(result.text)
 
-            return policy["policy"]["id"]
+            return policy[0]["policy"]["id"]
         else:
             raise Exception(err_msg)
     except Exception as e:
