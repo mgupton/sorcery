@@ -114,7 +114,10 @@ def main():
     elif args["phost"] and args["delete"]:
         pass
     elif args["host"] and args["purge-defunct"]:
-        purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None, None, None)
+        if not args["--tag"]:
+            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None, None, None)
+        else:
+            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None, None, args["--tag"])
     elif args["host"] and args["name-me"]:
         try:
             name_me(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--name"])
@@ -323,6 +326,7 @@ def get_hosts(api_key, cid, status):
 def get_hosts_batch(api_key, cid, status, batch_size, offset,tag):
     
     global API_BASE_URL
+    err_msg = "Error: Unable to query hosts."
 
     api_endpoint = "/api/lm/v1/%s/hosts?status=%s&offset=%s&limit=%s" % (cid, status, offset, batch_size)
 
@@ -345,12 +349,13 @@ def get_hosts_batch(api_key, cid, status, batch_size, offset,tag):
             hosts = json.loads(result.text)
             return hosts["hosts"]
         except Exception:
-            print("Error: Unable to query hosts.", sys.stderr)
+            print(err_msg, sys.stderr)
             return None
 
 
 def delete_host(api_key, cid, host_id):
     
+    err_msg = "Failed to delete to host."
     global API_BASE_URL    
 
     headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
@@ -362,7 +367,7 @@ def delete_host(api_key, cid, host_id):
     result = requests.delete(url, headers=headers)
 
     if result.status_code != 200:
-        raise Exception("Failed to delete to host.")
+        raise Exception(err_msg)
 
 
 def delete_me(api_key, cid):
@@ -385,6 +390,7 @@ def delete_me(api_key, cid):
 
 def name_me(api_key, cid, name):
 
+    err_msg = "Error naming source."
     try:
 
         log_source = get_lm_source_id()
@@ -397,12 +403,13 @@ def name_me(api_key, cid, name):
         if not phost is None:
             name_phost(api_key, cid, phost, name)
     except Exception as e:
-        raise Exception("Error naming source.")
+        raise Exception(err_msg)
 
 
 def name_lm_source(api_key, cid, source_id, name):
     
     global API_BASE_URL
+    err_msg = "Error naming log source."
 
     if util.is_windows():
         api_endpoint = "/api/lm/v1/%s/sources/eventlog/%s" % (cid, source_id)
@@ -419,14 +426,15 @@ def name_lm_source(api_key, cid, source_id, name):
     result = requests.post(url, data=post_data, headers=headers)
 
     if result.status_code != 200:
-        print("Error naming log source.", file=sys.stderr)
+        print(err_msg, file=sys.stderr)
         print(url)
-        raise Exception("Error naming log source.")
+        raise Exception(err_msg)
 
 
 def name_phost(api_key, cid, phost_id, name):
     
     global API_BASE_URL
+    err_msg = "Error naming protected host."
 
     api_endpoint = "/api/tm/v1/%s/protectedhosts/%s" % (cid, phost_id)
 
@@ -439,9 +447,9 @@ def name_phost(api_key, cid, phost_id, name):
     result = requests.post(url, data=post_data, headers=headers)
 
     if result.status_code != 200:
-        print("Error naming protected host.", file=sys.stderr)
+        print(err_msg, file=sys.stderr)
         print(url)
-        raise Exception("Error naming protected host.")
+        raise Exception(err_msg)
 
 
 #
@@ -756,6 +764,7 @@ def get_host_id():
 def get_assignment_policy_id(api_key, cid, name):
 
     global API_BASE_URL
+    err_msg = "Error getting policy id."
 
     api_endpoint = "/api/tm/v1/%s/policies" % (cid)
 
@@ -764,21 +773,22 @@ def get_assignment_policy_id(api_key, cid, name):
     headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key)}    
 
     try:        
-        result = request.get(url, header=headers)
+        result = requests.get(url, header=headers)
 
-        if request.status_code == 200:
+        if requests.status_code == 200:
             policy = json.loads(result.text())
 
             return policy["policy"]["id"]
         else:
-            raise Exception("Error getting policy id.")
+            raise Exception(err_msg)
     except Exception as e:
-        raise Exception("Error getting policy id.")
+        raise Exception(err_msg)
 
 
 def assign_me(api_key, cid, policy_name):
     
     global API_BASE_URL
+    err_msg = "Error assigning host."
 
     try:
         phost_id = get_phost_id()
@@ -798,11 +808,11 @@ def assign_me(api_key, cid, policy_name):
         result = requests.post(url, data=post_data, headers=headers)
 
         if result.status_code != 200:
-            print("Error assigning host.", file=sys.stderr)
+            print(err_msg, file=sys.stderr)
             print(url)
-            raise Exception("Error assigning host.")
+            raise Exception(err_msg)
     except Exception as e:
-        raise Exception("Error assigning host.")
+        raise Exception(err_msg)
 
 
 def test_purge_defunct_log_source_batches(api_key, cid, status, tag=None):
