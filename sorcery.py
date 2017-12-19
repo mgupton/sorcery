@@ -775,7 +775,7 @@ def get_assignment_policy_id(api_key, cid, name):
     try:        
         result = requests.get(url, headers=headers)
 
-        if requests.status_code == 200:
+        if result.status_code == 200:
             policy = json.loads(result.text())
 
             return policy["policy"]["id"]
