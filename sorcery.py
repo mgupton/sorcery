@@ -780,7 +780,7 @@ def get_assignment_policy_id(api_key, cid, name):
         if result.status_code == 200:
             policy = json.loads(result.text)
 
-            return policy[0]["policy"]["id"]
+            return policy["policies"][0]["policy"]["id"]
         else:
             raise Exception(err_msg)
     except Exception as e:
