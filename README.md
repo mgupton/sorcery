@@ -13,6 +13,18 @@
 - Some of the commands are designed to be ran on the host itself. These commands automatically determine the identity of the host and perform the specified operations. `sorcery host name-me` is an example of this type of command.
 - Some of the commands can be ran from any place. `sorcery hosts purge-defunct` is an example of this type of command.
 
+## Installation
+
+```
+pip install -r requirements.txt
+```
+```
+curl -lO https://codeload.github.com/niftybits/sorcery/zip/working
+```
+```
+unzip working.zip
+```
+
 ## Usage
 ### General Form of Commands
 
