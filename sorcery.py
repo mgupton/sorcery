@@ -3,7 +3,7 @@ Written by: Michael Gupton
 Version 0.9.0
 
 Usage:
-  sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>]
+  sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tag=<tag>]
   sorcery host purge-defunct --api_key=<key> --dc=<dc> --cid=<cid> [--age=<age>] [--tag=<tag>]
   sorcery host name-me --api_key=<key> --dc=<dc> --cid=<cid> --name=<name>
   sorcery host assign-me --api_key=<key> --dc=<dc> --cid=<cid> --policy-name=<policy-name>
@@ -110,7 +110,8 @@ def main():
         API_BASE_URL = None
 
     if args["phost"] and args["list"]:
-        get_phosts(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--status"])        
+        phosts = get_phosts(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--status"], args["--tag"])        
+        list_phosts(phosts)
     elif args["phost"] and args["delete"]:
         pass
     elif args["host"] and args["purge-defunct"]:
@@ -145,7 +146,7 @@ def main():
 # If there are many protected hosts this can be an expensive and slow
 # process.
 #
-def get_phosts(api_key, cid, status):
+def get_phosts(api_key, cid, status, tag):
     
     global API_BASE_URL
 
@@ -155,7 +156,7 @@ def get_phosts(api_key, cid, status):
 
     while True:
         
-        batch = get_phosts_batch(api_key, cid, status, BATCH_SIZE, offset)
+        batch = get_phosts_batch(api_key, cid, status, BATCH_SIZE, offset, tag)
 
         if batch is None:
             break
@@ -167,7 +168,12 @@ def get_phosts(api_key, cid, status):
             offset += BATCH_SIZE + 1
         else:
             return phosts
-        
+
+
+def list_phosts(phosts):
+    for phost in phosts:
+        print_phost(phost)
+
 
 def get_phosts_batch(api_key, cid, status, batch_size, offset, tag):
 
