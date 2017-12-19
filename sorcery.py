@@ -416,7 +416,7 @@ def name_lm_source(api_key, cid, source_id, name):
         post_data = '{"eventlog": { "name": "%s" }}' % (name)
     
     elif util.is_linux():        
-        api_endpoint = "/api/lm/v1/$s/sources/syslog/%s" % (cid, source_id)
+        api_endpoint = "/api/lm/v1/%s/sources/syslog/%s" % (cid, source_id)
         post_data = '{"syslog": { "name": "%s" }}' % (name)
 
     url = API_BASE_URL + api_endpoint
