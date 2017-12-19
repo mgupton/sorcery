@@ -47,7 +47,7 @@ This command will identify the host it is running on and then name the source in
 python sorcery.py host name-me --api_key=<key> --dc=<dc> --cid=<cid> --name=<name>
 ```
 ```
-python sorcery.py host name-me --api_key=abc123 --dc=ashburn --cid=123 --name=${hostname}
+python sorcery.py host name-me --api_key=abc123 --dc=ashburn --cid=123 --name=$(hostname)
 ```
 ### Command: sorcery host assign-me
 This command will identify the host it is running on and then assign the protected host to an appliance via the specified assignment policy.

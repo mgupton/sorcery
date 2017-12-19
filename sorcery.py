@@ -115,9 +115,9 @@ def main():
         pass
     elif args["host"] and args["purge-defunct"]:
         if not args["--tag"]:
-            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None, None, None)
+            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), None, None)
         else:
-            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None, None, args["--tag"])
+            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), None, args["--tag"])
     elif args["host"] and args["name-me"]:
         try:
             name_me(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--name"])
@@ -169,7 +169,7 @@ def get_phosts(api_key, cid, status):
             return phosts
         
 
-def get_phosts_batch(api_key, cid, status, batch_size, offset):
+def get_phosts_batch(api_key, cid, status, batch_size, offset, tag):
 
     global API_BASE_URL
 
@@ -295,7 +295,7 @@ def delete_log_source(api_key, cid, id):
 
     result = requests.delete(url, headers=headers)
 
-    if result.status_code != 200:
+    if not (result.status_code >= 200 and result.status_code <= 299):
         raise Exception("Failed to delete log source.")
 
 
