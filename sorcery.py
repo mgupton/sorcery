@@ -235,7 +235,7 @@ def delete_phost(api_key, cid, id):
 
     result = requests.delete(url, headers=headers)
 
-    if result.status_code != 200:
+    if not (result.status_code >= 200 and result.status_code <= 299):
         raise Exception("Failed to delete protected hosts.")
 
 
@@ -305,7 +305,7 @@ def delete_log_source(api_key, cid, id):
         raise Exception("Failed to delete log source.")
 
 
-def get_hosts(api_key, cid, status):
+def get_hosts(api_key, cid, host_type, status):
 
     global API_BASE_URL
 
@@ -315,7 +315,7 @@ def get_hosts(api_key, cid, status):
 
     while True:
         
-        batch = get_hosts_batch(api_key, cid, status, BATCH_SIZE, offset)
+        batch = get_hosts_batch(api_key, cid, host_type, status, BATCH_SIZE, offset)
 
         if batch is None:
             break
@@ -329,14 +329,17 @@ def get_hosts(api_key, cid, status):
             return hosts
 
 
-def get_hosts_batch(api_key, cid, status, batch_size, offset,tag):
+def get_hosts_batch(api_key, cid, type, status, batch_size, offset, tag):
     
     global API_BASE_URL
     err_msg = "Error: Unable to query hosts."
 
-    api_endpoint = "/api/lm/v1/%s/hosts?status=%s&offset=%s&limit=%s" % (cid, status, offset, batch_size)
-
-    api_endpoint = "/api/lm/v1/%s/hosts?&offset=%s&limit=%s" % (cid, offset, batch_size)
+    if type.lower() == "lm":
+        api_endpoint = "/api/lm/v1/%s/hosts?&offset=%s&limit=%s" % (cid, offset, batch_size)
+    elif type.lower() == "tm":
+        api_endpoint = "/api/tm/v1/%s/hosts?&offset=%s&limit=%s" % (cid, offset, batch_size)
+    else:
+        return None
 
     if not status is None:
         api_endpoint += "&status=%s" % (status)
@@ -372,7 +375,7 @@ def delete_host(api_key, cid, host_id):
 
     result = requests.delete(url, headers=headers)
 
-    if result.status_code != 200:
+    if not (result.status_code >= 200 and result.status_code <= 299):
         raise Exception(err_msg)
 
 
@@ -380,7 +383,7 @@ def delete_me(api_key, cid):
     
     log_source = get_lm_source_id()
 
-    if log_source != None:
+    if not log_source is None:
         delete_log_source(api_key, cid, log_source)
 
     phost = get_phost_id()
@@ -474,7 +477,7 @@ def purge_defunct_hosts(api_key, cid, age):
 
     defunct_hosts = []
 
-    hosts = get_hosts(api_key, cid, "offline")
+    hosts = get_hosts(api_key, cid, "lm", "offline")
 
     cur_time = int(time.time())
 
@@ -516,7 +519,7 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
 #
     while True:
         
-        batch = get_hosts_batch(api_key, cid, "offline", BATCH_SIZE, offset, tag)
+        batch = get_hosts_batch(api_key, cid, "lm", "offline", BATCH_SIZE, offset, tag)
 
         if batch is None:
             break
@@ -528,7 +531,23 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
                     print_host(host)
                     time.sleep(API_CALL_DELAY)
         else:
-            return hosts
+            break
+
+    while True:
+        
+        batch = get_hosts_batch(api_key, cid, "tm", "offline", BATCH_SIZE, offset, tag)
+
+        if batch is None:
+            break
+        
+        if len(batch) > 0:
+            for host in batch:
+                if int(host["status"]["timestamp"]) <= (cur_time - (age * SECONDS_IN_DAY)):
+                    delete_host(api_key, cid, host["id"])
+                    print_host(host)
+                    time.sleep(API_CALL_DELAY)
+        else:
+            break
 
 
 def print_host(host):
