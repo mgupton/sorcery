@@ -439,6 +439,28 @@ def name_lm_source(api_key, cid, source_id, name):
         print(url)
         raise Exception(err_msg)
 
+#
+# Name Log Manager sources with the host name of the source.
+#
+def name_lm_source_batches(api_key, cid, status, tag):
+    
+    BATCH_SIZE = 20
+    offset = 0
+
+    while true:
+        
+        sources = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset, tag)
+
+        if sources is None:
+            break
+    
+        if len(sources) > 0:
+            for source in sources:
+                for key in source.keys():
+                    pass
+        else:
+            return 
+
 
 def name_phost(api_key, cid, phost_id, name):
     
