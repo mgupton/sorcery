@@ -14,16 +14,18 @@
 - Some of the commands can be ran from any place. `sorcery hosts purge-defunct` is an example of this type of command.
 
 ## Installation
-
+### POSIX example
+```
+curl -lo sorcery.zip https://codeload.github.com/niftybits/sorcery/zip/master
+```
+```
+unzip sorcery.zip
+cd sorcery-master
+```
 ```
 pip install -r requirements.txt
 ```
-```
-curl -lO https://codeload.github.com/niftybits/sorcery/zip/working
-```
-```
-unzip working.zip
-```
+
 
 ## Usage
 ### General Form of Commands
@@ -68,4 +70,4 @@ python sorcery.py host assign-me --api_key=<key> --dc=<dc> --cid=<cid> --policy-
 ```
 
 ## Miscellanea
-- Sorcery could be "frozen" or distributed as a single self-contained executable by using ``pyinstaller --onefile`` to avoid the external dependencies on the Python runtime and packages.
+- Sorcery could be "frozen" or distributed as a single self-contained executable (e.g. ELF, PE) by using ``pyinstaller --onefile`` to avoid the external dependencies on the Python runtime and packages.
