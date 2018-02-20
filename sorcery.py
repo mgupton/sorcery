@@ -137,6 +137,20 @@ def main():
         else:
             test_purge_defunct_log_source_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None, args["--tag"])
 
+
+def set_dc(dc):
+    
+    global API_BASE_URL
+
+    if dc == "denver":
+        API_BASE_URL = DC1_API_BASE_URL
+    elif dc == "ashburn":
+        API_BASE_URL = DC2_API_BASE_URL
+    elif dc == "newport":
+        API_BASE_URL = DC3_API_BASE_URL
+    else:
+        API_BASE_URL = None
+
 #
 # Get protected hosts with the specified status
 #
@@ -209,9 +223,9 @@ def get_phost(api_key, cid, id):
 
     headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key) }
 
-    phosts = get_phosts(api_key, cid)
+    phosts = get_phosts(api_key, cid, None, None)
 
-    for phost in phosts["protectedhosts"]:
+    for phost in phosts:
         
         if phost["protectedhosts"]["id"] == id:
 
@@ -249,7 +263,7 @@ def get_log_sources(api_key, cid, status):
 
     while True:
         
-        batch = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset)
+        batch = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset, None)
 
         if batch is None:
             break
@@ -315,14 +329,14 @@ def get_hosts(api_key, cid, host_type, status):
 
     while True:
         
-        batch = get_hosts_batch(api_key, cid, host_type, status, BATCH_SIZE, offset)
+        batch = get_hosts_batch(api_key, cid, host_type, status, BATCH_SIZE, offset, None)
 
         if batch is None:
             break
         
         if len(batch) > 0:
             for host in batch:
-                hosts.append(source)
+                hosts.append(host)
 
             offset += BATCH_SIZE + 1
         else:
@@ -399,7 +413,9 @@ def delete_me(api_key, cid):
 
 def name_me(api_key, cid, name):
 
+    Sorcery.run_mode = Sorcery.RUN_MODE_LOCAL
     err_msg = "Error naming source."
+
     try:
 
         log_source = get_lm_source_id()
@@ -419,7 +435,7 @@ def name_lm_source(api_key, cid, source_id, name):
     
     global API_BASE_URL
     err_msg = "Error naming log source."
-
+        
     if util.is_windows():
         api_endpoint = "/api/lm/v1/%s/sources/eventlog/%s" % (cid, source_id)
         post_data = '{"eventlog": { "name": "%s" }}' % (name)
@@ -439,15 +455,25 @@ def name_lm_source(api_key, cid, source_id, name):
         print(url)
         raise Exception(err_msg)
 
+
+def name_lm_source_remote(api_key, cid, type, source_id, name):
+    
+    pass
+
+
 #
 # Name Log Manager sources with the host name of the source.
 #
 def name_lm_source_batches(api_key, cid, status, tag):
     
+    global API_BASE_URL
+
     BATCH_SIZE = 20
     offset = 0
 
-    while true:
+    Sorcery.run_mode = Sorcery.RUN_MODE_REMOTE
+
+    while True:
         
         sources = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset, tag)
 
@@ -457,7 +483,15 @@ def name_lm_source_batches(api_key, cid, status, tag):
         if len(sources) > 0:
             for source in sources:
                 for key in source.keys():
-                    pass
+                    print_log_source(source[key])
+
+                    if "metadata" in source[key].keys():                        
+                        if "local_hostname" in source[key]["metadata"].keys():
+                            if len(source[key]['metadata']['local_hostname']) > 0:
+                                print("Hostnmame: %s" % (source[key]['metadata']['local_hostname']))
+
+            offset += BATCH_SIZE
+
         else:
             return 
 
@@ -573,7 +607,7 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
 
 
 def print_host(host):
-    print("host" + "," + host["host"]["name"] + "," + source["host"]["id"] + ","
+    print("host" + "," + host["host"]["name"] + "," + host["host"]["id"] + ","
         + str(host["host"]["status"]["timestamp"]))
 
 
@@ -596,7 +630,7 @@ def purge_defunct_log_sources(api_key, cid, age):
             if int(log_source[key]["status"]["timestamp"]) <= (cur_time - (age * SECONDS_IN_DAY)):
                 defunct_log_sources.append(log_source)
 
-    for log_source in defunct_log_source:
+    for log_source in defunct_log_sources:
         for key in log_source.keys():
             delete_log_source(api_key, cid, log_source[key]["id"])
             print_log_source(log_source)
@@ -648,7 +682,7 @@ def purge_defunct_phosts(api_key, cid, age):
 
     defunct_phosts = []
 
-    phosts = get_phosts(api_key, cid, "offline")
+    phosts = get_phosts(api_key, cid, "offline", None)
 
     cur_time = int(time.time())
 
@@ -870,6 +904,23 @@ def test_purge_defunct_log_source_batches(api_key, cid, status, tag=None):
     purge_defunct_log_source_batches(api_key, cid, 7, status, tag)
     #purge_defunct_phost_batches(api_key, cid, 7)
     #purge_defunct_host_batches(api_key, cid, 7)
+
+
+class Sorcery():
+#
+# Some commands are ran directly on the host being configured and some
+# are ran on some other host. These constants are used to define the mode.
+#
+    api_key = None
+    RUN_MODE_LOCAL = 1
+    RUN_MODE_REMOTE = 2
+    run_mode = RUN_MODE_REMOTE
+
+    def __init__(self, api_key):
+        api_key = api_key
+
+    def name_lm_source_remote(self):
+        pass
 
 
 if __name__ == "__main__":
