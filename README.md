@@ -10,7 +10,7 @@
 - Uses the Cloud Defender public API and requires an API key from Alert Logic.
   - Contact support@alertlogic.com to request an API key. Or go [here](https://www.alertlogic.com/resources/alert-logic-activeintegration-apis/).
   - Contact Alert Logic support at support@alertlogic.com to get the data center and customer id.
-- Some of the commands are designed to be ran on the host itself. These commands automatically determine the identity of the host and perform the specified operations. `sorcery host name-me` is an example of this type of command.
+- Some of the commands are designed to be ran on the source host itself. These commands automatically determine the identity of the source and perform the specified operations. `sorcery host name-me` is an example of this type of command.
 - Some of the commands can be ran from any place. `sorcery hosts purge-defunct` is an example of this type of command.
 
 ## Installation

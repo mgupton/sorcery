@@ -100,14 +100,9 @@ def main():
 
     args = docopt(__doc__)
 
-    if args["--dc"] == "denver":
-        API_BASE_URL = DC1_API_BASE_URL
-    elif args["--dc"] == "ashburn":
-        API_BASE_URL = DC2_API_BASE_URL
-    elif args["--dc"] == "newport":
-        API_BASE_URL = DC3_API_BASE_URL
-    else:
-        API_BASE_URL = None
+    sorcery = Sorcery(args["--api_key"], args["--dc"])
+
+    set_dc(args["--dc"])
 
     if args["phost"] and args["list"]:
         phosts = get_phosts(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--status"], args["--tag"])        
@@ -485,6 +480,10 @@ def name_lm_source_batches(api_key, cid, status, tag):
                 for key in source.keys():
                     print_log_source(source[key])
 
+                    #
+                    # If there is hostname metadata for the source then make the source name
+                    # the same as the host name.
+                    #
                     if "metadata" in source[key].keys():                        
                         if "local_hostname" in source[key]["metadata"].keys():
                             if len(source[key]['metadata']['local_hostname']) > 0:
@@ -575,7 +574,7 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
 #
     while True:
         
-        batch = get_hosts_batch(api_key, cid, "lm", "offline", BATCH_SIZE, offset, tag)
+        batch = get_hosts_batch(api_key, cid, "lm", status, BATCH_SIZE, offset, tag)
 
         if batch is None:
             break
@@ -583,27 +582,14 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
         if len(batch) > 0:
             for host in batch:
                 if int(host["status"]["timestamp"]) <= (cur_time - (age * SECONDS_IN_DAY)):
+                    hosts.append(host)
                     delete_host(api_key, cid, host["id"])
                     print_host(host)
                     time.sleep(API_CALL_DELAY)
         else:
             break
 
-    while True:
-        
-        batch = get_hosts_batch(api_key, cid, "tm", "offline", BATCH_SIZE, offset, tag)
-
-        if batch is None:
-            break
-        
-        if len(batch) > 0:
-            for host in batch:
-                if int(host["status"]["timestamp"]) <= (cur_time - (age * SECONDS_IN_DAY)):
-                    delete_host(api_key, cid, host["id"])
-                    print_host(host)
-                    time.sleep(API_CALL_DELAY)
-        else:
-            break
+    return hosts
 
 
 def print_host(host):
@@ -664,6 +650,7 @@ def purge_defunct_log_source_batches(api_key, cid, age, status="offline", tag=No
         #        
                 for key in log_source.keys():        
                     if int(log_source[key]["status"]["timestamp"]) <= (cur_time - (age * SECONDS_IN_DAY)):
+                        log_sources.append(log_source)
                         delete_log_source(api_key, cid, log_source[key]["id"])
                         print_log_source(log_source[key])
                         time.sleep(API_CALL_DELAY)
@@ -916,7 +903,7 @@ class Sorcery():
     RUN_MODE_REMOTE = 2
     run_mode = RUN_MODE_REMOTE
 
-    def __init__(self, api_key):
+    def __init__(self, api_key, datacenter):
         api_key = api_key
 
     def name_lm_source_remote(self):
