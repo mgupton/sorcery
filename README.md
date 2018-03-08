@@ -14,7 +14,22 @@
 - Some of the commands can be ran from any place. `sorcery hosts purge-defunct` is an example of this type of command.
 
 ## Installation
-### POSIX example
+Use the *working* branch for the latest incarnation of sorcery. The *master* branch is for certaimn formal project milestones and *working* is for the most recent improvements and changes.
+
+#### Working Branch
+```
+curl -lo sorcery.zip https://codeload.github.com/niftybits/sorcery/zip/working
+```
+```
+unzip sorcery.zip
+cd sorcery-working
+```
+```
+pip install -r requirements.txt
+```
+
+
+#### Master Branch
 ```
 curl -lo sorcery.zip https://codeload.github.com/niftybits/sorcery/zip/master
 ```
