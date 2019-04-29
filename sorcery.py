@@ -8,6 +8,7 @@ Usage:
   sorcery host name-me --api_key=<key> --dc=<dc> --cid=<cid> --name=<name>
   sorcery host assign-me --api_key=<key> --dc=<dc> --cid=<cid> --policy-name=<policy-name>
   sorcery host delete-me --api_key=<key> --dc=<dc> --cid=<cid>
+  sorcery host tag-me --api_key=<key> --dc=<dc> --cid=<cid> --tags=<tags>
   sorcery test --api_key=<key> --dc=<dc> --cid=<cid> [--tag=<tag>]
 
 Options:
@@ -17,7 +18,7 @@ Options:
   --cid=<cid>          Alert Logic customer account.
   --status=<status>    Return only phosts/sources with the specified status [default: offline]
   --age=<age>          Number of days offline a source must be to be considered defunct [default: 7]
-  --tag=<tag>          Only apply command to sources with the specified tag.
+  --tags=<tags>        Only apply command to sources with the specified tags. (e.g. --tags="alpha,beta,gamma")
 """
 
 #
@@ -123,7 +124,12 @@ def main():
         try:
             assign_me(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--policy-name"])
         except Exception as e:
-            return -1        
+            return -1
+    elif args["host"] and args["tag-me"]:
+        try:
+            tag_me(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--tags"].rsplit(","))
+        except:
+            return -1
     elif args["host"] and args["delete-me"]:
         pass
     elif args["test"]:
@@ -515,6 +521,80 @@ def name_phost(api_key, cid, phost_id, name):
         print(url)
         raise Exception(err_msg)
 
+
+def tag_me(api_key, cid, tags):
+    
+    Sorcery.run_mode = Sorcery.RUN_MODE_LOCAL
+    err_msg = "Error tagging source."
+
+    try:
+        log_source = get_lm_source_id()
+
+        if not log_source is None:
+            tag_lm_source(api_key, cid, log_source, tags)
+
+        phost = get_phost_id()
+
+        if not phost is None:
+            tag_phost(api_key, cid, phost, tags)
+    except Exception as e:
+        raise Exception(err_msg)
+
+
+def tag_lm_source(api_key, cid, source_id, tags):
+    global API_BASE_URL
+    err_msg = "Error tagging log source."
+        
+    if util.is_windows():
+        api_endpoint = "/api/lm/v1/%s/sources/eventlog/%s" % (cid, source_id)
+        tags_json_text = get_tags_json(tags)
+        post_data = '{"eventlog": { "tags": [%s]}}' % (tags_json_text)
+    
+    elif util.is_linux():        
+        api_endpoint = "/api/lm/v1/%s/sources/syslog/%s" % (cid, source_id)
+        tags_json_text = get_tags_json(tags)
+        post_data = '{"syslog": { "tags": [%s]}}' % (tags_json_text)
+
+    url = API_BASE_URL + api_endpoint
+
+    headers = {"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
+
+    result = requests.post(url, data=post_data, headers=headers)
+
+    if result.status_code != 200:
+        print(err_msg, file=sys.stderr)
+        print(url)
+        raise Exception(err_msg)
+
+def tag_phost(api_key, cid, phost_id, tags):
+    global API_BASE_URL
+    err_msg = "Error tagging protected host."
+
+    api_endpoint = "/api/tm/v1/%s/protectedhosts/%s" % (cid, phost_id)
+
+    url = API_BASE_URL + api_endpoint
+
+    headers = {"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
+    tags_json_text = get_tags_json(tags)
+
+    post_data = '{"protectedhost": {"tags": "[%s]"}}' % tags_json_text
+
+    result = requests.post(url, data=post_data, headers=headers)
+
+    if result.status_code != 200:
+        print(err_msg, file=sys.stderr)
+        print(url)
+        raise Exception(err_msg)
+
+
+def get_tags_json(tags):
+    pass
+    json_text = ""
+
+    for t in tags:
+        json_text += '{"name": "%s"},' % t
+
+    return json_text
 
 #
 # purge_defunct will delete any sources, phosts and hosts that have been offline for
