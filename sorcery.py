@@ -1,10 +1,10 @@
 """Alert Logic Cloud Defender Sorcery tool.
 Written by: Michael Gupton
-Version 0.9.0
+Version 0.9.2
 
 Usage:
-  sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tag=<tag>]
-  sorcery host purge-defunct --api_key=<key> --dc=<dc> --cid=<cid> [--age=<age>] [--tag=<tag>]
+  sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tags=<tag>]
+  sorcery host purge-defunct --api_key=<key> --dc=<dc> --cid=<cid> [--age=<age>] [--tags=<tag>]
   sorcery host name-me --api_key=<key> --dc=<dc> --cid=<cid> --name=<name>
   sorcery host assign-me --api_key=<key> --dc=<dc> --cid=<cid> --policy-name=<policy-name>
   sorcery host delete-me --api_key=<key> --dc=<dc> --cid=<cid>
@@ -106,15 +106,15 @@ def main():
     set_dc(args["--dc"])
 
     if args["phost"] and args["list"]:
-        phosts = get_phosts(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--status"], args["--tag"])        
+        phosts = get_phosts(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--status"], args["--tags"])
         list_phosts(phosts)
     elif args["phost"] and args["delete"]:
         pass
     elif args["host"] and args["purge-defunct"]:
-        if not args["--tag"]:
+        if not args["--tags"]:
             purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), None, None)
         else:
-            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), None, args["--tag"])
+            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), None, args["--tags"])
     elif args["host"] and args["name-me"]:
         try:
             name_me(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--name"])
@@ -127,7 +127,7 @@ def main():
             return -1
     elif args["host"] and args["tag-me"]:
         try:
-            tag_me(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--tags"].rsplit(","))
+            tag_me(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--tags"])
         except:
             return -1
     elif args["host"] and args["delete-me"]:
@@ -136,7 +136,7 @@ def main():
         if not args["--tag"]:
             test_purge_defunct_log_source_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None)
         else:
-            test_purge_defunct_log_source_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None, args["--tag"])
+            test_purge_defunct_log_source_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], None, args["--tags"])
 
 
 def set_dc(dc):
@@ -161,7 +161,7 @@ def set_dc(dc):
 # If there are many protected hosts this can be an expensive and slow
 # process.
 #
-def get_phosts(api_key, cid, status, tag):
+def get_phosts(api_key, cid, status, tags):
     
     global API_BASE_URL
 
@@ -171,7 +171,7 @@ def get_phosts(api_key, cid, status, tag):
 
     while True:
         
-        batch = get_phosts_batch(api_key, cid, status, BATCH_SIZE, offset, tag)
+        batch = get_phosts_batch(api_key, cid, status, BATCH_SIZE, offset, tags)
 
         if batch is None:
             break
@@ -190,7 +190,7 @@ def list_phosts(phosts):
         print_phost(phost)
 
 
-def get_phosts_batch(api_key, cid, status, batch_size, offset, tag):
+def get_phosts_batch(api_key, cid, status, batch_size, offset, tags):
 
     global API_BASE_URL
 
@@ -201,8 +201,8 @@ def get_phosts_batch(api_key, cid, status, batch_size, offset, tag):
     if not status is None:
         api_endpoint += "&status.status=%s" % (status)
 
-    if not tag is None:
-        api_endpoint += "&tags=%s" % (tag)
+    if not tags is None:
+        api_endpoint += "&tags=%s" % (tags)
 
     headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
 
@@ -277,8 +277,10 @@ def get_log_sources(api_key, cid, status):
         else:
             return log_sources
 
-
-def get_log_sources_batch(api_key, cid, status, batch_size, offset, tag):
+#
+# tags parameter is comma seperated list of values.
+#
+def get_log_sources_batch(api_key, cid, status, batch_size, offset, tags):
     
     global API_BASE_URL
 
@@ -287,8 +289,8 @@ def get_log_sources_batch(api_key, cid, status, batch_size, offset, tag):
     if not status is None:
         api_endpoint += "&status=%s" % (status)
 
-    if not tag is None:
-        api_endpoint += "&tags=%s" % (tag)
+    if not tags is None:
+        api_endpoint += "&tags=%s" % (tags)
     
     headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
 
@@ -344,7 +346,7 @@ def get_hosts(api_key, cid, host_type, status):
             return hosts
 
 
-def get_hosts_batch(api_key, cid, type, status, batch_size, offset, tag):
+def get_hosts_batch(api_key, cid, type, status, batch_size, offset, tags):
     
     global API_BASE_URL
     err_msg = "Error: Unable to query hosts."
@@ -359,8 +361,8 @@ def get_hosts_batch(api_key, cid, type, status, batch_size, offset, tag):
     if not status is None:
         api_endpoint += "&status=%s" % (status)
 
-    if not tag is None:
-        api_endpoint += "&tags=%s" % (tag)
+    if not tags is None:
+        api_endpoint += "&tags=%s" % (tags)
         
     headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
 
@@ -465,7 +467,7 @@ def name_lm_source_remote(api_key, cid, type, source_id, name):
 #
 # Name Log Manager sources with the host name of the source.
 #
-def name_lm_source_batches(api_key, cid, status, tag):
+def name_lm_source_batches(api_key, cid, status, tags):
     
     global API_BASE_URL
 
@@ -476,7 +478,7 @@ def name_lm_source_batches(api_key, cid, status, tag):
 
     while True:
         
-        sources = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset, tag)
+        sources = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset, tags)
 
         if sources is None:
             break
@@ -508,7 +510,7 @@ def name_phost(api_key, cid, phost_id, name):
 
     api_endpoint = "/api/tm/v1/%s/protectedhosts/%s" % (cid, phost_id)
 
-    url = API_BASE_URL + api_endpoint
+    url = API_BASE 7_URL + api_endpoint
 
     headers = {"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
 
@@ -561,6 +563,8 @@ def tag_lm_source(api_key, cid, source_id, tags):
 
     result = requests.post(url, data=post_data, headers=headers)
 
+    print("tag_lm_source: %s" % result.status_code, file=sys.stderr)
+
     if result.status_code != 200:
         print(err_msg, file=sys.stderr)
         print(url)
@@ -577,9 +581,11 @@ def tag_phost(api_key, cid, phost_id, tags):
     headers = {"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
     tags_json_text = get_tags_json(tags)
 
-    post_data = '{"protectedhost": {"tags": "[%s]"}}' % tags_json_text
+    post_data = '{"protectedhost": {"tags": [%s]}}' % tags_json_text
 
     result = requests.post(url, data=post_data, headers=headers)
+
+    print("tag_phost: %s" % result.status_code, file=sys.stderr)
 
     if result.status_code != 200:
         print(err_msg, file=sys.stderr)
@@ -588,11 +594,15 @@ def tag_phost(api_key, cid, phost_id, tags):
 
 
 def get_tags_json(tags):
-    pass
+    
     json_text = ""
+    tags = tags.rsplit(",")
 
-    for t in tags:
-        json_text += '{"name": "%s"},' % t
+    for t in range(len(tags)):
+        if t < len(tags) - 1:
+            json_text += '{"name": "%s"},' % tags[t]
+        else:
+            json_text += '{"name": "%s"}' % tags[t]
 
     return json_text
 
@@ -629,7 +639,7 @@ def purge_defunct_hosts(api_key, cid, age):
     return defunct_hosts
 
 
-def purge_defunct_host_batches(api_key, cid, age, status, tag):
+def purge_defunct_host_batches(api_key, cid, age, status, tags):
     
     global SECONDS_IN_DAY
     global API_BASE_URL
@@ -643,8 +653,8 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
 # hosts must be deleted first since they depend on
 # the host configuration.
 #    
-    purge_defunct_log_source_batches(api_key, cid, age, status, tag)
-    purge_defunct_phost_batches(api_key, cid, age, status, tag)
+    purge_defunct_log_source_batches(api_key, cid, age, status, tags)
+    purge_defunct_phost_batches(api_key, cid, age, status, tags)
 
     cur_time = int(time.time())
 
@@ -654,7 +664,7 @@ def purge_defunct_host_batches(api_key, cid, age, status, tag):
 #
     while True:
         
-        batch = get_hosts_batch(api_key, cid, "lm", status, BATCH_SIZE, offset, tag)
+        batch = get_hosts_batch(api_key, cid, "lm", status, BATCH_SIZE, offset, tags)
 
         if batch is None:
             break
@@ -705,7 +715,7 @@ def purge_defunct_log_sources(api_key, cid, age):
     return defunct_log_sources
 
 
-def purge_defunct_log_source_batches(api_key, cid, age, status="offline", tag=None):
+def purge_defunct_log_source_batches(api_key, cid, age, status="offline", tags=None):
     global API_BASE_URL
     global API_CALL_DELAY
 
@@ -717,7 +727,7 @@ def purge_defunct_log_source_batches(api_key, cid, age, status="offline", tag=No
 
     while True:
         
-        batch = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset, tag)
+        batch = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset, tags)
 
         if batch is None:
             break
@@ -766,7 +776,7 @@ def purge_defunct_phosts(api_key, cid, age):
     return defunct_phosts
 
 
-def purge_defunct_phost_batches(api_key, cid, age, status="offline", tag=None):
+def purge_defunct_phost_batches(api_key, cid, age, status="offline", tags=None):
     global API_BASE_URL
     global API_CALL_DELAY
 
@@ -778,7 +788,7 @@ def purge_defunct_phost_batches(api_key, cid, age, status="offline", tag=None):
 
     while True:
         
-        batch = get_phosts_batch(api_key, cid, "offline", BATCH_SIZE, offset, tag)
+        batch = get_phosts_batch(api_key, cid, "offline", BATCH_SIZE, offset, tags)
 
         if batch is None:
             break
@@ -848,7 +858,10 @@ def get_lm_source_id():
         m = re.search("source_id: \"([a-fA-F0-9-]+)\"", line)
 
         if m != None:
+            print("Found log source id: %s" % m.group(1))
             return m.group(1)
+
+        print("No log source id found.", file=sys.stderr)
 
     return None
 
@@ -876,8 +889,10 @@ def get_phost_id():
         m = re.search("source_id: \"([a-fA-F0-9-]+)\"", line)
 
         if m != None:
+            print("Found phost id: %s" % m.group(1))
             return m.group(1)
-
+        
+        print("No phost id found.", file=sys.stderr)
     return None
 
 
@@ -904,8 +919,10 @@ def get_host_id():
         m = re.search("source_id: \"([a-fA-F0-9-]+)\"", line)
 
         if m != None:
+            print("Found host id: %s" % m.group(1))
             return m.group(1)
 
+        print("No host id found.", file=sys.stderr)
     return None
 
 
@@ -947,7 +964,7 @@ def assign_me(api_key, cid, policy_name):
 
         policy_id = get_assignment_policy_id(api_key, cid, policy_name)
 
-        post_data = '{"protectedhost": {"appliance": {"policy": {"id": "%s"}}' % (policy_id)
+        post_data = '{"protectedhost": {"appliance": {"policy": {"id": "%s"}}}}' % (policy_id)
 
         api_endpoint += "%s" % (phost_id)
 
@@ -960,15 +977,17 @@ def assign_me(api_key, cid, policy_name):
         if result.status_code != 200:
             print(err_msg, file=sys.stderr)
             print(url)
+            print(result.status_code)
+            print(result.text)
             raise Exception(err_msg)
     except Exception as e:
         raise Exception(err_msg)
 
 
-def test_purge_defunct_log_source_batches(api_key, cid, status, tag=None):
+def test_purge_defunct_log_source_batches(api_key, cid, status, tags=None):
     #lm_sources = get_log_sources(api_key, cid, "offline")
     #print(json.dumps(lm_sources))
-    purge_defunct_log_source_batches(api_key, cid, 7, status, tag)
+    purge_defunct_log_source_batches(api_key, cid, 7, status, tags)
     #purge_defunct_phost_batches(api_key, cid, 7)
     #purge_defunct_host_batches(api_key, cid, 7)
 
