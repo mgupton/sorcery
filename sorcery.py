@@ -1,6 +1,6 @@
 """Alert Logic Cloud Defender Sorcery tool.
 Written by: Michael Gupton
-Version 0.9.2
+Version 0.9.3
 
 Usage:
   sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tags=<tag>]
@@ -510,7 +510,7 @@ def name_phost(api_key, cid, phost_id, name):
 
     api_endpoint = "/api/tm/v1/%s/protectedhosts/%s" % (cid, phost_id)
 
-    url = API_BASE 7_URL + api_endpoint
+    url = API_BASE_URL + api_endpoint
 
     headers = {"Content-Type": "application/json", "Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
 
