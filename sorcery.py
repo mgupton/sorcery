@@ -1,6 +1,6 @@
 """Alert Logic Cloud Defender Sorcery tool.
 Written by: Michael Gupton
-Version 0.9.3
+Version 0.9.4
 
 Usage:
   sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tags=<tag>]
@@ -534,12 +534,18 @@ def tag_me(api_key, cid, tags):
 
         if not log_source is None:
             tag_lm_source(api_key, cid, log_source, tags)
+        else:
+            print("Log Source not found.")
 
         phost = get_phost_id()
 
         if not phost is None:
             tag_phost(api_key, cid, phost, tags)
+        else:
+            print("Protected Host not found.")
     except Exception as e:
+        print(err_msg, file=sys.stderr)
+        print(e)
         raise Exception(err_msg)
 
 
@@ -841,13 +847,13 @@ def get_lm_source_id():
         return None
 
     if util.is_windows():
-        phost_exec = util.WIN_LOG_SOURCE_EXEC
+        lsource_exec = util.WIN_LOG_SOURCE_EXEC
     elif util.is_linux():
-        phost_exec = util.LINUX_LOG_SOURCE_EXE
+        lsource_exec = util.LINUX_LOG_SOURCE_EXEC
     else:
         return None
 
-    cmd_output = check_output([phost_exec, "print-config"], stderr=subprocess.STDOUT)
+    cmd_output = check_output([lsource_exec, "print-config"], stderr=subprocess.STDOUT)
 
     cmd_output = iter(cmd_output.splitlines())
 
