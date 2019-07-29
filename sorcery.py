@@ -1,6 +1,6 @@
 """Alert Logic Cloud Defender Sorcery tool.
 Written by: Michael Gupton
-Version 0.9.4
+Version 0.9.5
 
 Usage:
   sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tags=<tag>]
@@ -844,13 +844,17 @@ def does_source_exists():
 def get_lm_source_id():
     
     if not util.does_source_exec_exists():
+        print("Agent executable binary cannot be found.", file=sys.stderr)
         return None
 
     if util.is_windows():
         lsource_exec = util.WIN_LOG_SOURCE_EXEC
+        print("Detected Windows OS.", file=sys.stderr)
     elif util.is_linux():
         lsource_exec = util.LINUX_LOG_SOURCE_EXEC
+        print("Detected Linux OS.", file=sys.stderr)
     else:
+        print("Could not detect OS type.", file=sys.stderr)
         return None
 
     cmd_output = check_output([lsource_exec, "print-config"], stderr=subprocess.STDOUT)
@@ -875,13 +879,17 @@ def get_lm_source_id():
 def get_phost_id():
     
     if not util.does_source_exec_exists():
+        print("Agent executable binary cannot be found.", file=sys.stderr)
         return None
 
     if util.is_windows():
         phost_exec = util.WIN_PHOST_EXEC
+        print("Detected Windows OS.", file=sys.stderr)
     elif util.is_linux():
         phost_exec = util.LINUX_PHOST_EXEC
+        print("Detected Linux OS.", file=sys.stderr)
     else:
+        print("Could not detect OS type.", file=sys.stderr)
         return None
 
     cmd_output = check_output([phost_exec, "print-config"], stderr=subprocess.STDOUT)
