@@ -6,7 +6,7 @@ import os
 import platform
 
 WIN_LOG_SOURCE_EXEC = r"c:\Program Files (x86)\AlertLogic\agent\al-elc.exe.current"
-LINUX_LOG_SOURCE_EXE = "/var/alertlogic/lib/agent/bin/al-slc.current"
+LINUX_LOG_SOURCE_EXEC = "/var/alertlogic/lib/agent/bin/al-slc.current"
 
 WIN_PHOST_EXEC = r"c:\Program Files (x86)\AlertLogic\agent\al-tmhost.exe.current"
 LINUX_PHOST_EXEC = "/var/alertlogic/lib/agent/bin/al-tmhost.current"
@@ -33,7 +33,7 @@ def does_source_exec_exists():
     if is_windows():
         return os.path.exists(WIN_LOG_SOURCE_EXEC)
     elif is_linux():
-        return os.path.exists(LINUX_LOG_SOURCE_EXE)
+        return os.path.exists(LINUX_LOG_SOURCE_EXEC)
     else:
         return False
 
