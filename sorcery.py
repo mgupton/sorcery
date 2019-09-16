@@ -1,6 +1,6 @@
 """Alert Logic Cloud Defender Sorcery tool.
 Written by: Michael Gupton
-Version 0.9.5
+Version 0.9.6
 
 Usage:
   sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tags=<tag>]
@@ -196,7 +196,7 @@ def get_phosts_batch(api_key, cid, status, batch_size, offset, tags):
 
     api_endpoint = "/api/tm/v1/%s/protectedhosts?status.status=%s&offset=%s&limit=%s" % (cid, status, offset, batch_size)
 
-    api_endpoint = "/api/tm/v1/%s/protectedhosts?offset=%s&limit=%s" % (cid,offset, batch_size)
+    api_endpoint = "/api/tm/v1/%s/protectedhosts?offset=%s&limit=%s" % (cid, offset, batch_size)
 
     if not status is None:
         api_endpoint += "&status.status=%s" % (status)
@@ -222,12 +222,12 @@ def get_phosts_batch(api_key, cid, status, batch_size, offset, tags):
 #
 def get_phost(api_key, cid, id):
 
-    headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key) }
+    headers = {"Accept": "application/json", "Authorization": "Basic %s" % (api_key)}
 
     phosts = get_phosts(api_key, cid, None, None)
 
     for phost in phosts:
-        
+
         if phost["protectedhosts"]["id"] == id:
 
             return phost["protectedhosts"]
@@ -251,7 +251,9 @@ def delete_phost(api_key, cid, id):
     result = requests.delete(url, headers=headers)
 
     if not (result.status_code >= 200 and result.status_code <= 299):
-        raise Exception("Failed to delete protected hosts.")
+        # raise Exception("Failed to delete protected hosts.")
+        print("Deleting phost returned non-200 response code.", file=sys.stderr)
+
 
 
 def get_log_sources(api_key, cid, status):
@@ -319,7 +321,8 @@ def delete_log_source(api_key, cid, id):
     result = requests.delete(url, headers=headers)
 
     if not (result.status_code >= 200 and result.status_code <= 299):
-        raise Exception("Failed to delete log source.")
+        # raise Exception("Failed to delete log source.")
+        print("Deleting log source returned non-200 response code.", file=sys.stderr)
 
 
 def get_hosts(api_key, cid, host_type, status):
@@ -393,7 +396,8 @@ def delete_host(api_key, cid, host_id):
     result = requests.delete(url, headers=headers)
 
     if not (result.status_code >= 200 and result.status_code <= 299):
-        raise Exception(err_msg)
+        # raise Exception(err_msg)
+        print("Deleting host returned non-200 response code.", file=sys.stderr)
 
 
 def delete_me(api_key, cid):
