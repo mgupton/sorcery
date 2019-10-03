@@ -1,6 +1,6 @@
 """Alert Logic Cloud Defender Sorcery tool.
 Written by: Michael Gupton
-Version 0.9.6
+Version 0.9.8
 
 Usage:
   sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tags=<tag>]
@@ -76,6 +76,7 @@ import subprocess
 from subprocess import check_output
 
 import util
+import inspect
 
 #
 # Third-party packages.
@@ -143,11 +144,11 @@ def set_dc(dc):
     
     global API_BASE_URL
 
-    if dc == "denver":
+    if dc.lower() == "denver":
         API_BASE_URL = DC1_API_BASE_URL
-    elif dc == "ashburn":
+    elif dc.lower() == "ashburn":
         API_BASE_URL = DC2_API_BASE_URL
-    elif dc == "newport":
+    elif dc.lower() == "newport":
         API_BASE_URL = DC3_API_BASE_URL
     else:
         API_BASE_URL = None
@@ -284,6 +285,7 @@ def get_log_sources(api_key, cid, status):
 #
 def get_log_sources_batch(api_key, cid, status, batch_size, offset, tags):
     
+    log_sources_filtered = []
     global API_BASE_URL
 
     api_endpoint = "/api/lm/v1/%s/sources?offset=%s&limit=%s" % (cid, offset, batch_size)
@@ -300,11 +302,21 @@ def get_log_sources_batch(api_key, cid, status, batch_size, offset, tags):
 
     result = requests.get(url, headers=headers)
 
+    print("get_log_sources_batch, %s" % url, file=sys.stderr)
+
     if result.status_code == 200:
         try:
             log_sources = json.loads(result.text)
-            return log_sources["sources"]
+
+            for log_source in log_sources["sources"]:
+                buf = get_first_value(log_source)
+
+                if buf["method"] == "agent":
+                    log_sources_filtered.append(log_source)
+
+            return log_sources_filtered
         except Exception:
+            print("get_log_sources_batch:%s, %s" % (lineno(), result.status_code), file=sys.stderr)
             return None
 
 
@@ -663,10 +675,18 @@ def purge_defunct_host_batches(api_key, cid, age, status, tags):
 # hosts must be deleted first since they depend on
 # the host configuration.
 #    
-    purge_defunct_log_source_batches(api_key, cid, age, status, tags)
-    purge_defunct_phost_batches(api_key, cid, age, status, tags)
+    log_sources = purge_defunct_log_source_batches(api_key, cid, age, status, tags)
+    phosts = purge_defunct_phost_batches(api_key, cid, age, status, tags)
+
+    hosts = get_defunct_hosts(log_sources, phosts)
 
     cur_time = int(time.time())
+
+
+    for host in hosts:
+        delete_host(api_key, cid, host["id"])
+        print_host(host)
+        time.sleep(API_CALL_DELAY)
 
 #
 # The loop continuously gets the first batch of hosts and deletes them.
@@ -739,7 +759,10 @@ def purge_defunct_log_source_batches(api_key, cid, age, status="offline", tags=N
         
         batch = get_log_sources_batch(api_key, cid, status, BATCH_SIZE, offset, tags)
 
+        print("purge_defunct_log_source_batches:%s" % lineno(), file=sys.stderr)
+
         if batch is None:
+            print("purge_defunct_log_source_batches, No log sources found", file=sys.stderr)
             break
         
         if len(batch) > 0:
@@ -797,10 +820,12 @@ def purge_defunct_phost_batches(api_key, cid, age, status="offline", tags=None):
     cur_time = int(time.time())
 
     while True:
-        
+
+        print("purge_defunct_phost_batches:%s" % lineno(), file=sys.stderr)
         batch = get_phosts_batch(api_key, cid, "offline", BATCH_SIZE, offset, tags)
 
         if batch is None:
+            print("purge_defunct_phost_batches:%s" % lineno(), file=sys.stderr)
             break
         
         if len(batch) > 0:
@@ -1006,8 +1031,28 @@ def test_purge_defunct_log_source_batches(api_key, cid, status, tags=None):
     #lm_sources = get_log_sources(api_key, cid, "offline")
     #print(json.dumps(lm_sources))
     purge_defunct_log_source_batches(api_key, cid, 7, status, tags)
-    #purge_defunct_phost_batches(api_key, cid, 7)
+    #purge_defunct_phost_batches(api_key, cid, 7
     #purge_defunct_host_batches(api_key, cid, 7)
+
+
+def get_defunct_hosts(log_sources, phosts):
+    hosts = []
+
+    for log_source in log_sources:
+        buf = get_first_value(log_source)
+
+        if not buf["agent"]["host_id"] in hosts:
+            hosts.append(buf["agent"]["host_id"])
+
+    for phost in phosts:
+        if not phost["protectedhost"]["host_id"] in hosts:
+            hosts.append(phost["protectedhost"]["host_id"]) 
+
+    return hosts
+
+
+def get_first_value(obj):
+    return obj[list(obj.keys())[0]]
 
 
 class Sorcery():
@@ -1026,6 +1071,10 @@ class Sorcery():
     def name_lm_source_remote(self):
         pass
 
+
+def lineno():
+    """Returns the current line number in our program."""
+    return inspect.currentframe().f_back.f_lineno
 
 if __name__ == "__main__":
     main()
