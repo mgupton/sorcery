@@ -1,6 +1,6 @@
 """Alert Logic Cloud Defender Sorcery tool.
 Written by: Michael Gupton
-Version 0.9.8
+Version 0.9.9
 
 Usage:
   sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tags=<tag>]
