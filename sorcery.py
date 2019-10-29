@@ -684,7 +684,7 @@ def purge_defunct_host_batches(api_key, cid, age, status, tags):
 
 
     for host in hosts:
-        delete_host(api_key, cid, host["id"])
+        delete_host(api_key, cid, host)
         print_host(host)
         time.sleep(API_CALL_DELAY)
 
