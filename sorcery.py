@@ -1,6 +1,6 @@
 """Alert Logic Cloud Defender Sorcery tool.
 Written by: Michael Gupton
-Version 0.9.9
+Version 0.9.11
 
 Usage:
   sorcery phost list --api_key=<key> --dc=<dc> --cid=<cid> [--status=<status>] [--tags=<tag>]
@@ -113,9 +113,9 @@ def main():
         pass
     elif args["host"] and args["purge-defunct"]:
         if not args["--tags"]:
-            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), None, None)
+            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), "offline", None)
         else:
-            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), None, args["--tags"])
+            purge_defunct_host_batches(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], int(args["--age"]), "offline", args["--tags"])
     elif args["host"] and args["name-me"]:
         try:
             name_me(get_encoded_api_key(args["--api_key"] + ":"), args["--cid"], args["--name"])
@@ -639,8 +639,8 @@ def purge_defunct_hosts(api_key, cid, age):
     
     global SECONDS_IN_DAY
 
-    purge_defunct_log_sources(api_key, cid, age)
-    purge_defunct_phosts(api_key, cid, age)
+    # purge_defunct_log_sources(api_key, cid, age)
+    # purge_defunct_phosts(api_key, cid, age)
 
     defunct_hosts = []
 
@@ -665,9 +665,6 @@ def purge_defunct_host_batches(api_key, cid, age, status, tags):
     
     global SECONDS_IN_DAY
     global API_BASE_URL
-
-    BATCH_SIZE = 20
-    offset = 0
     hosts = []
 
 #
@@ -680,41 +677,15 @@ def purge_defunct_host_batches(api_key, cid, age, status, tags):
 
     hosts = get_defunct_hosts(log_sources, phosts)
 
-    cur_time = int(time.time())
-
-
     for host in hosts:
         delete_host(api_key, cid, host)
-        print_host(host)
+        print_host(hosts[host])
         time.sleep(API_CALL_DELAY)
-
-#
-# The loop continuously gets the first batch of hosts and deletes them.
-# In this way it chomps its way through all defunct hosts.
-#
-    while True:
-        
-        batch = get_hosts_batch(api_key, cid, "lm", status, BATCH_SIZE, offset, tags)
-
-        if batch is None:
-            break
-        
-        if len(batch) > 0:
-            for host in batch:
-                if int(host["status"]["timestamp"]) <= (cur_time - (age * SECONDS_IN_DAY)):
-                    hosts.append(host)
-                    delete_host(api_key, cid, host["id"])
-                    print_host(host)
-                    time.sleep(API_CALL_DELAY)
-        else:
-            break
-
-    return hosts
 
 
 def print_host(host):
-    print("host" + "," + host["host"]["name"] + "," + host["host"]["id"] + ","
-        + str(host["host"]["status"]["timestamp"]))
+    print("host" + "," + host["name"] + "," + host["host_id"] + ","
+        + str(host["last_status_change"]))
 
 
 def purge_defunct_log_sources(api_key, cid, age):
@@ -832,6 +803,7 @@ def purge_defunct_phost_batches(api_key, cid, age, status="offline", tags=None):
             for phost in batch:
                 
                 if int(phost["protectedhost"]["status"]["timestamp"]) <= (cur_time - (age * SECONDS_IN_DAY)):
+                    phosts.append(phost)
                     delete_phost(api_key, cid, phost["protectedhost"]["id"])
                     print_phost(phost)
                     time.sleep(API_CALL_DELAY)
@@ -1036,17 +1008,29 @@ def test_purge_defunct_log_source_batches(api_key, cid, status, tags=None):
 
 
 def get_defunct_hosts(log_sources, phosts):
-    hosts = []
+    hosts = {}
+    host = {}
 
     for log_source in log_sources:
         buf = get_first_value(log_source)
 
-        if not buf["agent"]["host_id"] in hosts:
-            hosts.append(buf["agent"]["host_id"])
+        host = {}
+        host["name"] = buf["name"]
+        host["host_id"] = buf["agent"]["host_id"]
+        host["last_status_change"] = buf["status"]["timestamp"]
+
+        if not host["host_id"] in hosts.keys():
+            hosts[host["host_id"]] = host
 
     for phost in phosts:
-        if not phost["protectedhost"]["host_id"] in hosts:
-            hosts.append(phost["protectedhost"]["host_id"]) 
+
+        host = {}
+        host["name"] = phost["protectedhost"]["name"]
+        host["host_id"] = phost["protectedhost"]["host_id"]
+        host["last_status_change"] = phost["protectedhost"]["status"]["timestamp"]
+
+        if not host["host_id"] in hosts.keys():
+            hosts[host["host_id"]] = host
 
     return hosts
 
